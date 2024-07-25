@@ -24,8 +24,8 @@ void get_URL(const string &host, const string &path) {
     sock.write("\r\n");
     sock.shutdown(SHUT_WR);
 
-    while(!sock.eof){
-        cout << sock.read;
+    while(!sock.eof()){
+        cout << sock.read();
     }
     sock.close();
 
