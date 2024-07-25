@@ -23,7 +23,7 @@ size_t ByteStream::write(const string &data) {
     if(_input_ended) return 0;
     //if data is larger than remaining capacity, write untill stream is full
     size_t written_len = min(data.size(), remaining_capacity());
-    for(int i = 0; i < written_len; i++){
+    for(size_t i = 0; i < written_len; i++){
         _buf[_tail] = data[i];  //write to tail
         //use % to handle update in circular vector
         _tail = (_tail + 1) % (+_capacity + 1);
@@ -36,7 +36,7 @@ size_t ByteStream::write(const string &data) {
 string ByteStream::peek_output(const size_t len) const {
     string str;
     size_t peeked_len = min(len, buffer_size());
-    for(int i = 0; i < peeked_len; i++){
+    for(size_t i = 0; i < peeked_len; i++){
         //again, use % to handle circular vector
         str.append(1, _buf[(_head + i) % (_capacity + 1)]);
     }
