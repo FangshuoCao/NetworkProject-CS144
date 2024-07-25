@@ -13,7 +13,7 @@ void DUMMY_CODE(Targs &&... /* unused */) {}
 using namespace std;
 
 //constructor:
-//initialize the buffer to size capacity+1 since it is circular,
+//initialize the capacity of buffer to capacity+1 since it is circular,
 //in order to distinguish between full buf and empty buf
 ByteStream::ByteStream(const size_t capacity)
     :_buf(capacity + 1), _capacity(capacity), _cnt_written(0),
@@ -76,7 +76,7 @@ size_t ByteStream::buffer_size() const {
 }
 
 bool ByteStream::buffer_empty() const {
-    return buffer_size() == 0;
+    return _head == _tail;
 }
 
 bool ByteStream::eof() const {
