@@ -94,3 +94,5 @@ size_t ByteStream::bytes_read() const {
 size_t ByteStream::remaining_capacity() const {
     return _capacity - buffer_size();
 }
+
+ 
