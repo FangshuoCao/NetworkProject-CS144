@@ -20,15 +20,19 @@ _capacity(capacity){}
 //! possibly out-of-order, from the logical stream, and assembles any newly
 //! contiguous substrings and writes them into the output stream in order.
 void StreamReassembler::push_substring(const string &data, const size_t index, const bool eof) {
+    if (index >= _next + _capacity) {
+        return;
+    }
 
-    uint64_t start_index = max(index, _next);
-    uint64_t end_data = index + data.size();
-    uint64_t end_output = min(_next + _capacity - _output.buffer_size(), _eof);
-    
-    uint64_t end_index = min(end_data, end_output);
+    uint64_t start_index = index;
+    uint64_t end_index = index + data.size();
+
+    if (end_index > _next + _capacity) {
+        end_index = _next + _capacity;
+    }
 
     if (eof) {
-        _eof = min(_eof, end_data);
+        _eof = min(_eof, end_index);
     }
 
     for (uint64_t i = start_index; i < end_index; ++i) {
@@ -42,7 +46,7 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
         }
     }
 
-    string str;
+    std::string str;
     while (_buf.find(_next) != _buf.end()) {
         str += _buf[_next];
         _buf.erase(_next);
