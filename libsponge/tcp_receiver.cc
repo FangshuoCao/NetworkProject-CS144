@@ -37,7 +37,7 @@ void TCPReceiver::segment_received(const TCPSegment &seg) {
     //push payload into reassembler
     //FIN is set means EOF is set, therefore we already implement 
     //the logic to handle FIN in our reassembler
-    _reassembler.push_substring(seg.payload(), stream_index, header.fin);
+    _reassembler.push_substring(seg.payload().copy(), stream_index, header.fin);
 }
 
 optional<WrappingInt32> TCPReceiver::ackno() const {
