@@ -24,7 +24,6 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
         return;
     }
 
-    uint64_t start_index = index;
     uint64_t end_index = index + data.size();
 
     if (end_index > _next + _capacity) {
@@ -35,19 +34,19 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
         _eof = min(_eof, end_index);
     }
 
-    for (uint64_t i = start_index; i < end_index; ++i) {
+    for (uint64_t i = index; i < end_index; ++i) {
         if (i < _next) {
             continue;
         }
 
         if (_buf.find(i) == _buf.end()) {
-            _buf[i] = data[i - start_index];
+            _buf[i] = data[i - index];
             ++_unassembled_bytes;
         }
     }
 
-    std::string str;
-    while (_buf.find(_next) != _buf.end()) {
+    string str;
+    while (_next < _eof && _buf.find(_next) != _buf.end()) {
         str += _buf[_next];
         _buf.erase(_next);
         ++_next;
