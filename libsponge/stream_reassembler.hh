@@ -14,6 +14,7 @@ class StreamReassembler {
     // Your code here -- add private members as necessary.
     std::map<uint64_t, std::string> _buf; //storage for unassembled strings
     uint64_t _next;   //index of the next byte to be filled in buffer
+    uint64_t _eof;    //index of eof
     size_t _unassembled_bytes;  //number of unassembled bytes
     ByteStream _output;  //!< The reassembled in-order byte stream
     size_t _capacity;    //!< The maximum number of bytes
@@ -31,7 +32,8 @@ class StreamReassembler {
     //!
     //! \param data the substring
     //! \param index indicates the index (place in sequence) of the first byte in `data`
-    //! \param eof the last byte of `data` will be the last byte in the entire stream
+    //! \param eof if eof is true, then this is the last substring to insert, and the
+    //! last byte of `data` will be the last byte in the entire stream
     void push_substring(const std::string &data, const uint64_t index, const bool eof);
 
     //! \name Access the reassembled byte stream

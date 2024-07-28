@@ -13,7 +13,8 @@ void DUMMY_CODE(Targs &&... /* unused */) {}
 using namespace std;
 
 StreamReassembler::StreamReassembler(const size_t capacity) : _buf(), _next(0),
-_unassembled_bytes(0), _output(capacity), _capacity(capacity){}
+_eof(numeric_limits<size_t>::max()), _unassembled_bytes(0), _output(capacity),
+_capacity(capacity){}
 
 //! \details This function accepts a substring (aka a segment) of bytes,
 //! possibly out-of-order, from the logical stream, and assembles any newly
@@ -42,6 +43,9 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
         str_to_insert = str_to_insert.substr(0, _next + _capacity - start_in_output);
     }
 
+    //handle eof
+    if(eof) _eof = min(_eof, _next + str_to_insert.size());
+
     //now we finish modifying the input
     //str_to_insert is the final string we need to insert at position _start_in_output
     
@@ -51,7 +55,7 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
 
         //check if there is any buffered substring that can now be written to
         //ouput after a new write
-        while(!_buf.empty() && _buf.begin()->first == _next){
+        while(!_buf.empty() && _next < _eof && _buf.begin()->first == _next){
             _next += _output.write(_buf.begin()->second);
             _unassembled_bytes -= _buf.begin()->second.size();
             _buf.erase(_buf.begin());
@@ -63,7 +67,7 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
     }
 
     //handle eof
-    if(eof && _next == _output.bytes_written()){
+    if(_next == _eof){
         _output.end_input();
     }
 }
