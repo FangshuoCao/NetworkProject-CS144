@@ -31,23 +31,13 @@ WrappingInt32 wrap(uint64_t n, WrappingInt32 isn) {
 #include <cstdint>
 #include "wrapping_integers.hh"
 
+//check note
 uint64_t unwrap(WrappingInt32 n, WrappingInt32 isn, uint64_t checkpoint) {
-    const uint64_t MAX_INT32 = 1ull << 32;
-    WrappingInt32 chk = wrap(checkpoint, isn);
-    uint32_t num_wraps = checkpoint / MAX_INT32;
-    if(num_wraps == 0){
-        return n - isn;
+    uint32_t offset = n - wrap(checkpoint, isn);
+    uint64_t seq_abs = checkpoint + offset;
+    if(seq_abs >= (1ll << 32) && offset > (1l << 31)){
+        seq_abs -= (1ul << 32);
     }
-    if(n.raw_value() > chk.raw_value()){
-        uint32_t diff = n - chk;
-        uint64_t candidate_r = checkpoint + diff;
-        uint64_t candidate_l = candidate_r - MAX_INT32;
-        return MAX_INT32 - diff < diff ? candidate_l : candidate_r;
-    }else{
-        uint32_t diff = chk - n;
-        uint64_t candidate_l = checkpoint - diff;
-        uint64_t candidate_r = candidate_l + MAX_INT32;
-        return MAX_INT32 - diff < diff ? candidate_r : candidate_l;
-    }
+    return seq_abs;
 }
 
