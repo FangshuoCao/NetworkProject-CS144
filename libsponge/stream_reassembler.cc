@@ -13,61 +13,50 @@ void DUMMY_CODE(Targs &&... /* unused */) {}
 using namespace std;
 
 StreamReassembler::StreamReassembler(const size_t capacity) : _buf(), _next(0),
-_eof(numeric_limits<size_t>::max()), _unassembled_bytes(0), _output(capacity),
+_eof(numeric_limits<uint64_t>::max()), _unassembled_bytes(0), _output(capacity),
 _capacity(capacity){}
 
 //! \details This function accepts a substring (aka a segment) of bytes,
 //! possibly out-of-order, from the logical stream, and assembles any newly
 //! contiguous substrings and writes them into the output stream in order.
 void StreamReassembler::push_substring(const string &data, const size_t index, const bool eof) {
-    //start index of substring completely out of bound of the buffer
-    if(index > _next + _capacity){
+    if (index >= _next + _capacity) {
         return;
     }
 
-    //handle overlapping substr
-    //adjust the starting index in the substr data if overlapping
-    size_t start_in_data = (index < _next) ? _next - index : 0;
-    //adjust the starting index to insert data into output
-    size_t start_in_output = (index < _next) ? _next : index;
-    //if the entire substring is already in the output, don't need to do anything
-    if(start_in_data >= data.size()){
-        return;
-    }
-    
-    //handle truncation
-    //the actual substr of data we need to insert, after adjusting for overlap
-    string str_to_insert = data.substr(start_in_data);
-    uint64_t end_index = start_in_output + str_to_insert.size();
-    if(end_index > _next + _capacity){ //out of bound, need truncation
-        str_to_insert = str_to_insert.substr(0, _next + _capacity - start_in_output);
+    uint64_t start_index = index;
+    uint64_t end_index = index + data.size();
+
+    if (end_index > _next + _capacity) {
+        end_index = _next + _capacity;
     }
 
-    //handle eof
-    if(eof) _eof = min(_eof, _next + str_to_insert.size());
+    if (eof) {
+        _eof = min(_eof, end_index);
+    }
 
-    //now we finish modifying the input
-    //str_to_insert is the final string we need to insert at position _start_in_output
-    
-    if(start_in_output == _next){   //string to push matches the expected next index
-        //then directly write to output
-        _next += _output.write(str_to_insert);
-
-        //check if there is any buffered substring that can now be written to
-        //ouput after a new write
-        while(!_buf.empty() && _next < _eof && _buf.begin()->first == _next){
-            _next += _output.write(_buf.begin()->second);
-            _unassembled_bytes -= _buf.begin()->second.size();
-            _buf.erase(_buf.begin());
+    for (uint64_t i = start_index; i < end_index; ++i) {
+        if (i < _next) {
+            continue;
         }
-    }else{  //index of string to push does not match
-        //put it into the buffer
-        _buf[start_in_output] = str_to_insert;
-        _unassembled_bytes += str_to_insert.size();
+
+        if (_buf.find(i) == _buf.end()) {
+            _buf[i] = data[i - start_index];
+            ++_unassembled_bytes;
+        }
     }
 
-    //handle eof
-    if(_next == _eof){
+    std::string str;
+    while (_buf.find(_next) != _buf.end()) {
+        str += _buf[_next];
+        _buf.erase(_next);
+        ++_next;
+        --_unassembled_bytes;
+    }
+
+    _output.write(str);
+
+    if (_next == _eof) {
         _output.end_input();
     }
 }
