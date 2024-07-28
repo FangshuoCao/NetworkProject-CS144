@@ -28,7 +28,7 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
     uint64_t end_index = min(end_data, end_output);
 
     if (eof) {
-        _eof = min(_eof, end_index);
+        _eof = min(_eof, end_data);
     }
 
     for (uint64_t i = start_index; i < end_index; ++i) {
