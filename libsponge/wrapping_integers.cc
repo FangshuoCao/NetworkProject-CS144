@@ -28,23 +28,26 @@ WrappingInt32 wrap(uint64_t n, WrappingInt32 isn) {
 //! runs from the local TCPSender to the remote TCPReceiver and has one ISN,
 //! and the other stream runs from the remote TCPSender to the local TCPReceiver and
 //! has a different ISN.
+#include <cstdint>
+#include "wrapping_integers.hh"
+
 uint64_t unwrap(WrappingInt32 n, WrappingInt32 isn, uint64_t checkpoint) {
     const uint64_t MAX_INT32 = 1ull << 32;
-    uint64_t offset = n - isn;
-    uint32_t num_wraps = checkpoint / MAX_INT32;
-    uint64_t chk = checkpoint % MAX_INT32;
-    if(num_wraps == 0){
-        return offset;
-    }else{
-        if(offset > chk){
-            uint64_t absr = MAX_INT32 * num_wraps + offset;
-            uint64_t absl = absr - MAX_INT32;
-            return absr - checkpoint < checkpoint - absl ? absr : absl;
-        }else{
-            uint64_t absl = MAX_INT32 * num_wraps + offset;
-            uint64_t absr = absl + MAX_INT32;
-            return absr - checkpoint < checkpoint - absl ? absr : absl;
-        }
+
+    // Step 1: Calculate the offset in the 32-bit space
+    uint32_t offset = n - isn;
+
+    // Step 2: Calculate potential absolute sequence numbers
+    uint64_t candidate1 = ((checkpoint / MAX_INT32) * MAX_INT32) + offset;
+    uint64_t candidate2 = candidate1 + MAX_INT32;
+
+    // Step 3: Select the candidate closest to the checkpoint
+    if (std::abs(static_cast<int64_t>(candidate1) - static_cast<int64_t>(checkpoint)) <=
+        std::abs(static_cast<int64_t>(candidate2) - static_cast<int64_t>(checkpoint))) {
+        return candidate1;
+    } else {
+        return candidate2;
     }
 }
+
 
