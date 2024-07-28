@@ -20,9 +20,6 @@ _capacity(capacity){}
 //! possibly out-of-order, from the logical stream, and assembles any newly
 //! contiguous substrings and writes them into the output stream in order.
 void StreamReassembler::push_substring(const string &data, const size_t index, const bool eof) {
-    if (index >= _next + _capacity) {
-        return;
-    }
 
     uint64_t start_index = index;
     uint64_t end_index = index + data.size();
