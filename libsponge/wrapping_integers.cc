@@ -15,7 +15,7 @@ using namespace std;
 //! \param isn The initial sequence number
 WrappingInt32 wrap(uint64_t n, WrappingInt32 isn) {
     //casting uint64 to uint32 is the same as % 2^32
-    return WrappingInt32{static_cast<uint32_t>(n) + isn.raw_value()};
+    return WrappingInt32{static_cast<uint32_t>(n) + isn.raw_value};
 }
 
 //! Transform a WrappingInt32 into an "absolute" 64-bit sequence number (zero-indexed)
@@ -29,22 +29,22 @@ WrappingInt32 wrap(uint64_t n, WrappingInt32 isn) {
 //! and the other stream runs from the remote TCPSender to the local TCPReceiver and
 //! has a different ISN.
 uint64_t unwrap(WrappingInt32 n, WrappingInt32 isn, uint64_t checkpoint) {
-     // Step 1: Wrap the checkpoint in the 32-bit space
-    WrappingInt32 wrapped_checkpoint = wrap(checkpoint, isn);
-
-    // Step 2: Compute the difference in the 32-bit space
-    int32_t diff = n.raw_value() - wrapped_checkpoint.raw_value();
-
-    // Step 3: Calculate the potential absolute sequence numbers
-    // checkpoint + diff and checkpoint + diff + 2^32
-    uint64_t abs_seqno_1 = checkpoint + static_cast<int64_t>(diff);
-    uint64_t abs_seqno_2 = abs_seqno_1 + (1ull << 32);
-
-    // Step 4: Select the closest absolute sequence number
-    uint64_t closest_abs_seqno = (std::abs(static_cast<int64_t>(abs_seqno_1) - static_cast<int64_t>(checkpoint)) <=
-                                  std::abs(static_cast<int64_t>(abs_seqno_2) - static_cast<int64_t>(checkpoint)))
-                                     ? abs_seqno_1
-                                     : abs_seqno_2;
-
-    return closest_abs_seqno;
+    const uint64_t MAX_INT32 = 1ull < 32;
+    uint64_t offset = n - isn;
+    uint32_t num_wraps = checkpoint / MAX_INT32;
+    if(num_wraps == 0){
+        return offset;
+    }else{
+        uint64_t chk = checkpoint % MAX_INT32;
+        if(offset > chk){
+            uint64_t absr = MAX_INT32 * num_wraps + offset;
+            uint64_t absl = absr - MAX_INT32;
+            return absr - checkpoint < checkpoint - absl ? absr : absl;
+        }else{
+            uint64_t absl = MAX_INT32 * num_wraps + offset;
+            uint64_t absr = absl + MAX_INT32;
+            return absr - checkpoint < checkpoint - absl ? absr : absl;
+        }
+    }
 }
+
