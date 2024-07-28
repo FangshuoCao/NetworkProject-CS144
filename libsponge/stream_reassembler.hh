@@ -12,9 +12,9 @@
 class StreamReassembler {
   private:
     // Your code here -- add private members as necessary.
-    std::map<uint64_t, std::string> _buf; //storage for unassembled strings
-    uint64_t _next;   //index of the next byte to be filled in buffer
-    uint64_t _eof;    //index of eof
+    std::map<size_t, char> _buf; //storage for unassembled strings
+    size_t _next;   //index of the next byte to be filled in buffer
+    size_t _eof;    //index of eof
     size_t _unassembled_bytes;  //number of unassembled bytes
     ByteStream _output;  //!< The reassembled in-order byte stream
     size_t _capacity;    //!< The maximum number of bytes
