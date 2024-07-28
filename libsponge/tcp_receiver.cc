@@ -58,6 +58,6 @@ optional<WrappingInt32> TCPReceiver::ackno() const {
 }
 
 size_t TCPReceiver::window_size() const {
-    //full capacity - bytes reassembled but not read by application
+    //full capacity - number of bytes reassembled but not read by application
     return _capacity - _reassembler.stream_out().buffer_size();
 }
