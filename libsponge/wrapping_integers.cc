@@ -50,4 +50,23 @@ uint64_t unwrap(WrappingInt32 n, WrappingInt32 isn, uint64_t checkpoint) {
     }
 }
 
+uint64_t unwrap(WrappingInt32 n, WrappingInt32 isn, uint64_t checkpoint) {
+    const uint64_t MAX_INT32 = 1ull << 32;
+    uint64_t offset = n - isn;
+    uint32_t num_wraps = checkpoint / MAX_INT32;
+    uint64_t chk = (checkpoint - isn.raw_value()) % MAX_INT32;
+    if(num_wraps == 0){
+        return offset;
+    }else{
+        if(offset > chk){
+            uint64_t absr = MAX_INT32 * num_wraps + offset;
+            uint64_t absl = absr - MAX_INT32;
+            return absr - checkpoint < checkpoint - absl ? absr : absl;
+        }else{
+            uint64_t absl = MAX_INT32 * num_wraps + offset;
+            uint64_t absr = absl + MAX_INT32;
+            return absr - checkpoint < checkpoint - absl ? absr : absl;
+        }
+    }
+}
 
