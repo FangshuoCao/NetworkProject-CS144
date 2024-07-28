@@ -15,7 +15,7 @@ using namespace std;
 //! \param isn The initial sequence number
 WrappingInt32 wrap(uint64_t n, WrappingInt32 isn) {
     //casting uint64 to uint32 is the same as % 2^32
-    return WrappingInt32{static_cast<uint32_t>(n) + isn.raw_value};
+    return WrappingInt32{static_cast<uint32_t>(n) + isn.raw_value()};
 }
 
 //! Transform a WrappingInt32 into an "absolute" 64-bit sequence number (zero-indexed)
