@@ -45,10 +45,15 @@ optional<WrappingInt32> TCPReceiver::ackno() const {
     if(!_syn_received){
         return nullopt;
     }
-                            //have we received a FIN?
-    uint64_t ackno_abs = _reassembler.stream_out().input_ended() ?
-        _reassembler.stream_out().bytes_written() + 1 : //add index for SYN and FIN
-        _reassembler.stream_out().bytes_written() + 2;  //add index for SYN only
+
+    // +1 for SYN
+    uint64_t ackno_abs = _reassembler.stream_out().bytes_written() + 1;
+
+    //if we have received a FIN, +1 for FIN
+    if(_reassembler.stream_out().input_ended()){
+        ackno_abs++;
+    }
+
     return wrap(ackno_abs, _isn);
 }
 
