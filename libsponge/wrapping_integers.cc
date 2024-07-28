@@ -34,7 +34,6 @@ WrappingInt32 wrap(uint64_t n, WrappingInt32 isn) {
 uint64_t unwrap(WrappingInt32 n, WrappingInt32 isn, uint64_t checkpoint) {
     const uint64_t MAX_INT32 = 1ull << 32;
     WrappingInt32 chk = wrap(checkpoint, isn);
-    uint32_t num_wraps = checkpoint / MAX_INT32;
     if(n.raw_value() > chk.raw_value()){
         uint32_t diff = n - chk;
         uint64_t candidate_r = checkpoint + diff;
