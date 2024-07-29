@@ -28,15 +28,7 @@ uint64_t TCPSender::bytes_in_flight() const { return _outstanding_bytes; }
 
 
 void TCPSender::fill_window() {
-    if(_next_seqno == 0){
-        TCPSegment segment;
-        segment.header().syn = true;
-        segment.header().seqno = _isn;
-        _segments_out.push(segment);
-        _next_seqno += segment.length_in_sequence_space();
-        _outstanding_bytes += segment.length_in_sequence_space();
-        _outstanding_segments.push(segment);
-    }
+
 
     //zero window probing - when filling the window, if window size is 0, act like it is 1
     //the last byte we need to send is ackno + window_size,
@@ -51,6 +43,13 @@ void TCPSender::fill_window() {
         Buffer &buf = segment.payload();
         buf = stream_in().read(min(bytes_to_send, TCPConfig::MAX_PAYLOAD_SIZE));
         bytes_to_send -= buf.size();
+
+        //_next_seqno == 0 means connection is not established yet, and this
+        //is the first message in the threeway handshake, so just send a SYN
+        if(_next_seqno == 0){
+            header.syn = true;
+            --bytes_to_send;    //SYN take up one space in the window
+        }
 
         //if we reach eof, set FIN in the segment
         //but we shouldn't send FIN if it makes the segment exceeds the windod size
@@ -121,6 +120,7 @@ void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_si
         }
         _consec_retrans = 0;    //reset count of consecutive retransmission
     }
+
     fill_window();
 
 }
