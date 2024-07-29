@@ -28,8 +28,6 @@ uint64_t TCPSender::bytes_in_flight() const { return _outstanding_bytes; }
 
 
 void TCPSender::fill_window() {
-
-
     //zero window probing - when filling the window, if window size is 0, act like it is 1
     //the last byte we need to send is ackno + window_size,
     //and first byte to send if next_seqno, so bytes_to_send is their difference
@@ -40,7 +38,7 @@ void TCPSender::fill_window() {
         TCPHeader &header = segment.header();
 
         //_next_seqno == 0 means connection is not established yet, and this
-	        //is the first message in the threeway handshake, so just send a SYN
+	    //is the first message in the threeway handshake, so just send a SYN
 	    if(_next_seqno == 0){
 	        header.syn = true;
 	        --bytes_to_send;    //SYN take up one space in the window
@@ -66,15 +64,14 @@ void TCPSender::fill_window() {
         }
 
         //send segment
-        segments_out().emplace(segment);
+        segments_out().push(segment);
         if(!_timer.started()){
             _timer.start();
         }
 
         //push segment into oustanding segments and start timer
-        _outstanding_segments.emplace(segment);
+        _outstanding_segments.push(segment);
         
-
         //update corresponding fields
         _next_seqno += len;
         _outstanding_bytes += len;
@@ -86,10 +83,13 @@ void TCPSender::fill_window() {
 //! \param ackno The remote receiver's ackno (acknowledgment number)
 //! \param window_size The remote receiver's advertised window size
 void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_size) {
+    //use _next_seqno as a checkpoint to unwrap ackno
     uint64_t ackno_abs = unwrap(ackno, _isn, _next_seqno);
     if(ackno_abs > _next_seqno){
         return;     //invalid ackno: ackno is a byte that we haven't send yet
     }
+
+    //update
     _ackno_abs = ackno_abs;
     _window_size = window_size;
 
@@ -101,18 +101,18 @@ void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_si
         size_t len = segment.length_in_sequence_space();
         uint64_t seqno = unwrap(segment.header().seqno, _isn, _next_seqno);
 
-        //if a segment is not fully ACKed(all bytes in it are ACKed), don't pop it
+        //if a segment is not fully ACKed(all bytes in it are ACKed),
+        //then don't pop it and stop here
         if(seqno + len > _ackno_abs){
             break;
         }
-        new_data_acked = true;
+        new_data_acked = true;  //at least one segment is fully ACKed
         _outstanding_segments.pop();
         _outstanding_bytes -= len;
     }
 
     if(new_data_acked){
-        //reset RTO
-        _RTO = _initial_retransmission_timeout;
+        _RTO = _initial_retransmission_timeout; //reset RTO
         if(!_outstanding_segments.empty()){
             _timer.start(); //if there are still outstanding segments, reset timer
         }else{
@@ -121,6 +121,7 @@ void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_si
         _consec_retrans = 0;    //reset count of consecutive retransmission
     }
 
+    //since window is updated, we need to refill it
     fill_window();
 
 }
@@ -129,7 +130,8 @@ void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_si
 void TCPSender::tick(const size_t ms_since_last_tick) {
     //if timer didn't expire, do nothing 
     if(_timer.expired(ms_since_last_tick, _RTO)){
-        //don't pop! since we might need to retransmit it again
+        //don't pop the first element in outstanding queue,
+        //since we might need to retransmit it again
         segments_out().push(_outstanding_segments.front());
         if(_window_size != 0){
             _consec_retrans++;
