@@ -39,17 +39,17 @@ void TCPSender::fill_window() {
         TCPSegment segment;
         TCPHeader &header = segment.header();
 
+        //_next_seqno == 0 means connection is not established yet, and this
+	        //is the first message in the threeway handshake, so just send a SYN
+	    if(_next_seqno == 0){
+	        header.syn = true;
+	        --bytes_to_send;    //SYN take up one space in the window
+        }
+
         header.seqno = wrap(_next_seqno, _isn);
         Buffer &buf = segment.payload();
         buf = stream_in().read(min(bytes_to_send, TCPConfig::MAX_PAYLOAD_SIZE));
         bytes_to_send -= buf.size();
-
-        //_next_seqno == 0 means connection is not established yet, and this
-        //is the first message in the threeway handshake, so just send a SYN
-        if(_next_seqno == 0){
-            header.syn = true;
-            --bytes_to_send;    //SYN take up one space in the window
-        }
 
         //if we reach eof, set FIN in the segment
         //but we shouldn't send FIN if it makes the segment exceeds the windod size
