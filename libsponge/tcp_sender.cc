@@ -61,17 +61,22 @@ void TCPSender::fill_window() {
             _stop_sending = true;
         }
 
+        size_t len = segment.length_in_sequence_space();
+        if(len == 0){
+            return;
+        }
+
         //send segment
         segments_out().emplace(segment);
-
-        //push segment into oustanding segments and start timer
-        _outstanding_segments.emplace(segment);
         if(!_timer.started()){
             _timer.start();
         }
 
+        //push segment into oustanding segments and start timer
+        _outstanding_segments.emplace(segment);
+        
+
         //update corresponding fields
-        size_t len = segment.length_in_sequence_space();
         _next_seqno += len;
         _outstanding_bytes += len;
     }
@@ -82,10 +87,11 @@ void TCPSender::fill_window() {
 //! \param ackno The remote receiver's ackno (acknowledgment number)
 //! \param window_size The remote receiver's advertised window size
 void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_size) {
-    _ackno_abs = unwrap(ackno, _isn, _next_seqno);
-    if(_ackno_abs > _next_seqno){
+    uint64_t ackno_abs = unwrap(ackno, _isn, _next_seqno);
+    if(ackno_abs >= _next_seqno){
         return;     //invalid ackno: ackno is a byte that we haven't send yet
     }
+    _ackno_abs = ackno_abs;
     _window_size = window_size;
 
     bool new_data_acked = false;
