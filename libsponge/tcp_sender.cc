@@ -88,7 +88,7 @@ void TCPSender::fill_window() {
 //! \param window_size The remote receiver's advertised window size
 void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_size) {
     uint64_t ackno_abs = unwrap(ackno, _isn, _next_seqno);
-    if(ackno_abs >= _next_seqno){
+    if(ackno_abs > _next_seqno){
         return;     //invalid ackno: ackno is a byte that we haven't send yet
     }
     _ackno_abs = ackno_abs;
@@ -120,8 +120,8 @@ void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_si
             _timer.stop();  //if there is no outstanding segments, stop timer
         }
         _consec_retrans = 0;    //reset count of consecutive retransmission
-        fill_window();
     }
+    fill_window();
 
 }
 
