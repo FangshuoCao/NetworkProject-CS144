@@ -9,6 +9,31 @@
 #include <functional>
 #include <queue>
 
+class Timer{
+  private:
+    size_t _time{0};
+
+    bool _started{false};
+
+  public:
+    void start(){
+      _time = 0;
+      _started = true;
+    }
+
+    void stop(){ _started = false; }
+
+    bool started() { return _started };
+
+    bool expired(size_t ms_since_last_tick, size_t RTO){
+      _time += ms_since_last_tick;
+      return _started && _time >= RTO;
+    }
+}
+
+
+
+
 //! \brief The "sender" part of a TCP implementation.
 
 //! Accepts a ByteStream, divides it up into segments and sends the
@@ -31,6 +56,32 @@ class TCPSender {
 
     //! the (absolute) sequence number for the next byte to be sent
     uint64_t _next_seqno{0};
+
+
+    //Below is the new field we added:
+    //the timer to check timeout
+    Timer _timer{};
+
+    //segments on the fly
+    std::queue<TCPSegment> _outstanding_segments{};
+
+    //number of bytes on the fly
+    size_t _outstanding_bytes{0};
+
+    //current RTO
+    unsigned int _RTO;
+
+    //number of consecutive retransmission
+    unsigned int _consec_retrans{0};
+
+    //assume window size is 1 before we got an ACK from receiver
+    size_t _window_size{1};
+
+    //absolute ackno received from the receiver
+    uint64_t _ackno_abs{0};
+
+    //used to stop sending when detected EOF from input stream
+    bool _stop_sending{false};
 
   public:
     //! Initialize a TCPSender
