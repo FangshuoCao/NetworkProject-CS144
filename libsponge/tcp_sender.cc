@@ -67,7 +67,7 @@ void TCPSender::fill_window() {
         //push segment into oustanding segments and start timer
         _outstanding_segments.emplace(segment);
         if(!_timer.started()){
-            _timer.start;
+            _timer.start();
         }
 
         //update corresponding fields
@@ -97,7 +97,7 @@ void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_si
         uint64_t seqno = unwrap(segment.header().seqno, _isn, _next_seqno);
 
         //if a segment is not fully ACKed(all bytes in it are ACKed), don't pop it
-        if(seqno + len > ackno){
+        if(seqno + len > _ackno_abs){
             break;
         }
         new_data_acked = true;
