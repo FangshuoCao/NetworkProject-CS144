@@ -28,8 +28,14 @@ uint64_t TCPSender::bytes_in_flight() const { return _outstanding_bytes; }
 
 
 void TCPSender::fill_window() {
-    if(_stop_sending){
-        return;
+    if(_next_seqno == 0){
+        TCPSegment segment;
+        segment.header().syn = true;
+        segment.header().seqno = _isn;
+        _segments_out.push(segment);
+        _next_seqno += segment.length_in_sequence_space();
+        _outstanding_bytes += segment.length_in_sequence_space();
+        _outstanding_segments.push(segment);
     }
 
     //zero window probing - when filling the window, if window size is 0, act like it is 1
@@ -41,12 +47,6 @@ void TCPSender::fill_window() {
         TCPSegment segment;
         TCPHeader &header = segment.header();
 
-        //_next_seqno == 0 means connection is not established yet, and this
-        //is the first message in the threeway handshake, so just send a SYN
-        if(_next_seqno == 0){
-            header.syn = true;
-            --bytes_to_send;    //SYN take up one space in the window
-        }
         header.seqno = wrap(_next_seqno, _isn);
         Buffer &buf = segment.payload();
         buf = stream_in().read(min(bytes_to_send, TCPConfig::MAX_PAYLOAD_SIZE));
