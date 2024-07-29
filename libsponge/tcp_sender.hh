@@ -23,13 +23,13 @@ class Timer{
 
     void stop(){ _started = false; }
 
-    bool started() { return _started };
+    bool started() { return _started; }
 
     bool expired(size_t ms_since_last_tick, size_t RTO){
       _time += ms_since_last_tick;
       return _started && _time >= RTO;
     }
-}
+};
 
 
 
