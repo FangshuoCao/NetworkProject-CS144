@@ -120,6 +120,7 @@ void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_si
             _timer.stop();  //if there is no outstanding segments, stop timer
         }
         _consec_retrans = 0;    //reset count of consecutive retransmission
+        fill_window();
     }
 
 }
