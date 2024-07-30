@@ -95,8 +95,8 @@ class TCPConnection {
           segment.header().ackno = _receiver.ackno().value();
         }
         //make sure window size will fit in 16 bits
-        segment.header().win = min(_receiver.window_size(),
-                              static_cast<size_t>(numeric_limits<uint16_t>::max()));
+        segment.header().win = std::min(_receiver.window_size(),
+                              static_cast<size_t>(std::numeric_limits<uint16_t>::max()));
         _segments_out.push(std::move(segment));
       }
     }
