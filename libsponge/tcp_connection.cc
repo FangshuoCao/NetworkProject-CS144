@@ -29,11 +29,6 @@ size_t TCPConnection::time_since_last_segment_received() const {
 }
 
 void TCPConnection::segment_received(const TCPSegment &seg) {
-    //update ackno and winsize in sender
-    _sender._ackno_abs = seg.header().ackno;
-    _sender._window_size = seg.header().win;
-    //pass segment to receiver
-    _receiver.segment_received(seg);
 }
 
 bool TCPConnection::active() const {
