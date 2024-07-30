@@ -88,15 +88,16 @@ class TCPConnection {
     //add ackno and window size to segments, then send them
     void send(){
       while(!_sender.segments_out().empty()){
-        TCPSegment segment = _sender.segments_out().pop();
+        TCPSegment segment = std::move(_sender.segments_out().front());
+         _sender.segments_out().pop();
         if(_receiver.ackno().has_value()){
           segment.header().ack = true;
           segment.header().ackno = _receiver.ackno().value();
         }
         //make sure window size will fit in 16 bits
         segment.header().win = min(_receiver.window_size(),
-                              <size_t>(numeric_limits<uint16_t>::max()));
-        _segments_out.push(segment);
+                              static_cast<size_t>(numeric_limits<uint16_t>::max()));
+        _segments_out.push(std::move(segment));
       }
     }
 
