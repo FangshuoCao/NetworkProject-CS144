@@ -91,6 +91,10 @@ size_t TCPConnection::write(const string &data) {
 
 //! \param[in] ms_since_last_tick number of milliseconds since the last call to this method
 void TCPConnection::tick(const size_t ms_since_last_tick) {
+    if(!active()){
+        return;
+    }
+    
     _time_since_last_segment_received += ms_since_last_tick;
     _sender.tick(ms_since_last_tick);
     //if we've retransmitted too many times, sth very bad has happened
