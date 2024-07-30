@@ -99,6 +99,9 @@ class TCPConnection {
     //set RST to reset the connection
     void send_RST();
 
+    //reset connection(unclean shutdown)
+    void unclean_shutdown();
+
     //! \name construction and destruction
     //! moving is allowed; copying is disallowed; default construction not possible
 

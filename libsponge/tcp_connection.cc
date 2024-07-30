@@ -37,10 +37,8 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
     const TCPHeader &header = seg.header();
 
     if(header.rst){ //if we received a RST
-        //perform unclean shutdown(reset)
-        _sender.stream_in().set_error();
-        _receiver.stream_out().set_error();
-        _active = false;
+        unclean_shutdown();
+        return;
     }
 
     //pass seg to receiver to handle it
@@ -50,7 +48,7 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
         return;
     }
 
-    if(!_sender.stream_in().eof && _receiver.stream_out.input_ended()){
+    if(!_sender.stream_in().eof() && _receiver.stream_out().input_ended()){
         _linger_after_streams_finish = false;
     }
 
@@ -158,6 +156,12 @@ void TCPConnection::send_RST() {
 void TCPConnection::connect() {
     _sender.fill_window();
     send_segments();
+}
+
+void TCPConnection::unclean_shutdown(){
+    _sender.stream_in().set_error();
+    _receiver.stream_out().set_error();
+    _active = false;
 }
 
 TCPConnection::~TCPConnection() {
