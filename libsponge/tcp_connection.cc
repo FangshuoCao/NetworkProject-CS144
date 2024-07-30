@@ -91,7 +91,7 @@ size_t TCPConnection::write(const string &data) {
 
 //! \param[in] ms_since_last_tick number of milliseconds since the last call to this method
 void TCPConnection::tick(const size_t ms_since_last_tick) {
-    if(!active()){
+    if(!_active){
         return;
     }
     
@@ -108,8 +108,9 @@ void TCPConnection::tick(const size_t ms_since_last_tick) {
     if(_receiver.stream_out().input_ended() //1.inbound stream fully assembled and ended
         && _sender.stream_in().eof()        //2.outbut stream ended
         && _sender.bytes_in_flight() == 0   //3.outbound stream fully acked by peer
-        && (!_linger_after_streams_finish   //4A.lingering after both stream end
-        || _time_since_last_segment_received > 10 * _cfg.rt_timeout)){ //4B.Passive close
+        && (!_linger_after_streams_finish   //4A.we are the Passive Closer
+        || _time_since_last_segment_received >= 10 * _cfg.rt_timeout)){
+            //or lingering time is over
             _active = false;    //close the connction
             return;
     }
