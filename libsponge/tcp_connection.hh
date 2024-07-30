@@ -16,9 +16,8 @@ class TCPConnection {
     //! outbound queue of segments that the TCPConnection wants sent
     std::queue<TCPSegment> _segments_out{};
 
-    //! Should the TCPConnection stay active (and keep ACKing)
-    //! for 10 * _cfg.rt_timeout milliseconds after both streams have ended,
-    //! in case the remote TCPConnection doesn't know we've received its whole stream?
+    //are we the active closer?
+    //active closer need to linger, pasasive closer does not
     bool _linger_after_streams_finish{true};
 
     //initial state is active
@@ -92,11 +91,11 @@ class TCPConnection {
     explicit TCPConnection(const TCPConfig &cfg) : _cfg{cfg} {}
 
 
-    //Method added by ourselves
+    //New method added
     //add ackno and window size to segments, then send them
     void send_segments();
 
-    //set RST to reset the connection
+    //send RST to reset the connection
     void send_RST();
 
     //reset connection(unclean shutdown)

@@ -44,6 +44,10 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
     //pass seg to receiver to handle it and reassemble it to the inbound stream
     _receiver.segment_received(seg);
 
+    //recall that ALL tcp segments should have an ackno, except the
+    //very first SYN sent in the three-way handshake,
+    //and if the segment is indeed a SYN,
+    //_receiver.segment_received() that we just called had already handle it
     if(!_receiver.ackno().has_value()){
         return;
     }
