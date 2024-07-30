@@ -28,6 +28,7 @@ void get_URL(const string &host, const string &path) {
         cout << sock.read();
     }
     sock.close();
+    sock.wait_until_closed();
 
     cerr << "Function called: get_URL(" << host << ", " << path << ").\n";
     cerr << "Warning: get_URL() has not been implemented yet.\n";
@@ -54,7 +55,6 @@ int main(int argc, char *argv[]) {
 
         // Call the student-written function.
         get_URL(host, path);
-        sock.wait_until_closed();
     } catch (const exception &e) {
         cerr << e.what() << "\n";
         return EXIT_FAILURE;
