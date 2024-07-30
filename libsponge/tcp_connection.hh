@@ -21,6 +21,11 @@ class TCPConnection {
     //! in case the remote TCPConnection doesn't know we've received its whole stream?
     bool _linger_after_streams_finish{true};
 
+    //initial state is active
+    bool _active{true};
+
+    size_t _time_since_last_segment_received{0};
+
   public:
     //! \name "Input" interface for the writer
     //!@{
@@ -55,8 +60,11 @@ class TCPConnection {
     size_t unassembled_bytes() const;
     //! \brief Number of milliseconds since the last segment was received
     size_t time_since_last_segment_received() const;
+
     //!< \brief summarize the state of the sender, receiver, and the connection
-    TCPState state() const { return {_sender, _receiver, active(), _linger_after_streams_finish}; };
+    TCPState state() const {
+      return {_sender, _receiver, active(), _linger_after_streams_finish};
+    };
     //!@}
 
     //! \name Methods for the owner or operating system to call
@@ -86,20 +94,7 @@ class TCPConnection {
 
     //Method added by ourselves
     //add ackno and window size to segments, then send them
-    void send(){
-      while(!_sender.segments_out().empty()){
-        TCPSegment segment = std::move(_sender.segments_out().front());
-         _sender.segments_out().pop();
-        if(_receiver.ackno().has_value()){
-          segment.header().ack = true;
-          segment.header().ackno = _receiver.ackno().value();
-        }
-        //make sure window size will fit in 16 bits
-        segment.header().win = std::min(_receiver.window_size(),
-                              static_cast<size_t>(std::numeric_limits<uint16_t>::max()));
-        _segments_out.push(std::move(segment));
-      }
-    }
+    void send_segments();
 
 
     //! \name construction and destruction
