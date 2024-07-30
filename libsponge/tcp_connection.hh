@@ -83,6 +83,24 @@ class TCPConnection {
     //! Construct a new connection from a configuration
     explicit TCPConnection(const TCPConfig &cfg) : _cfg{cfg} {}
 
+
+    //Method added by ourselves
+    //add ackno and window size to segments, then send them
+    void send(){
+      while(!_sender.segments_out().empty()){
+        TCPSegment segment = _sender.segments_out().pop();
+        if(_receiver.ackno().has_value()){
+          segment.header().ack = true;
+          segment.header().ackno = _receiver.ackno().value();
+        }
+        //make sure window size will fit in 16 bits
+        segment.header().win = min(_receiver.window_size(),
+                              <size_t>(numeric_limits<uint16_t>::max()));
+        _segments_out.push(segment);
+      }
+    }
+
+
     //! \name construction and destruction
     //! moving is allowed; copying is disallowed; default construction not possible
 
