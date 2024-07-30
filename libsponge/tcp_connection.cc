@@ -41,29 +41,35 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
         return;
     }
 
-    //pass seg to receiver to handle it
+    //pass seg to receiver to handle it and reassemble it to the inbound stream
     _receiver.segment_received(seg);
 
     if(!_receiver.ackno().has_value()){
         return;
     }
 
+    //if we didn't finish sending, but received a FIN(remote peer finish sending)
+    //this means that we will be the passive closer
     if(!_sender.stream_in().eof() && _receiver.stream_out().input_ended()){
-        _linger_after_streams_finish = false;
+        _linger_after_streams_finish = false;   //passive closer dont linger
     }
 
-    //update our sending window
+    //pass ackno and window size to sender to update our sending window
     if(header.ack){
         _sender.ack_received(header.ackno, header.win);
     }
-    _sender.fill_window();
 
+    _sender.fill_window();
+    //if we received an segment, but don't have real data to send
     if(seg.length_in_sequence_space() > 0 && _sender.segments_out().empty()){
-        _sender.send_empty_segment();
+        _sender.send_empty_segment();   //then send an empty ACK
     }
     
+    //if received segment has no data and seqno
+    //and seqno is the ackno the remote host expected - 1
+    //then it is a keep-alive segment
     if(seg.length_in_sequence_space() == 0 && header.seqno == _receiver.ackno().value() - 1){
-        _sender.send_empty_segment();
+        _sender.send_empty_segment();   //send ACK, responding keep alive
     }
     send_segments();
 }
@@ -127,27 +133,18 @@ void TCPConnection::send_segments(){
         //make sure window size will fit in 16 bits
         segment.header().win = min(_receiver.window_size(),
                               static_cast<size_t>(numeric_limits<uint16_t>::max()));
-        _segments_out.push(move(segment));
+        _segments_out.emplace(move(segment));
     }
 }
 
 void TCPConnection::send_RST() {
-    _sender.fill_window();
-    if (_sender.segments_out().empty()) {
-        _sender.send_empty_segment();
-    }
-    TCPSegment segment = _sender.segments_out().front();
+    //generate a empty segment
+    _sender.send_empty_segment();
+    //set RST flag and send
+    TCPSegment segment = move(_sender.segments_out().front());
     _sender.segments_out().pop();
-    optional<WrappingInt32> ackno = _receiver.ackno();
-    if (ackno.has_value()) {
-        segment.header().ack = true;
-        segment.header().ackno = ackno.value();
-    }
-    segment.header().win = _receiver.window_size() <= numeric_limits<uint16_t>::max()
-                               ? _receiver.window_size()
-                               : numeric_limits<uint16_t>::max();
     segment.header().rst = true;
-    _segments_out.emplace(segment);
+    _segments_out.emplace(move(segment));
 
     unclean_shutdown();
 }
