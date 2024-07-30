@@ -25,7 +25,7 @@ size_t TCPConnection::unassembled_bytes() const {
 }
 
 size_t TCPConnection::time_since_last_segment_received() const {
-
+    return 0;
 }
 
 void TCPConnection::segment_received(const TCPSegment &seg) {
@@ -37,7 +37,7 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
 }
 
 bool TCPConnection::active() const {
-
+    return true;
 }
 
 size_t TCPConnection::write(const string &data) {
@@ -51,7 +51,7 @@ void TCPConnection::tick(const size_t ms_since_last_tick) {
 }
 
 void TCPConnection::end_input_stream() {
-
+    
 }
 
 void TCPConnection::connect() {
