@@ -96,6 +96,8 @@ class TCPConnection {
     //add ackno and window size to segments, then send them
     void send_segments();
 
+    //set RST to reset the connection
+    void send_RST();
 
     //! \name construction and destruction
     //! moving is allowed; copying is disallowed; default construction not possible

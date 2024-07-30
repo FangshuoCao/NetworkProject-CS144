@@ -29,6 +29,45 @@ size_t TCPConnection::time_since_last_segment_received() const {
 }
 
 void TCPConnection::segment_received(const TCPSegment &seg) {
+    if(!active()){
+        return;
+    }
+    //reset timer
+    _time_since_last_segment_received = 0;
+    const TCPHeader &header = seg.header();
+
+    if(header.rst){ //if we received a RST
+        //perform unclean shutdown(reset)
+        _sender.stream_in().set_error();
+        _receiver.stream_out().set_error();
+        _active = false;
+    }
+
+    //pass seg to receiver to handle it
+    _receiver.segment_received(seg);
+
+    if(!_receiver.ackno().has_value()){
+        return;
+    }
+
+    if(!_sender.stream_in().eof && _receiver.stream_out.input_ended()){
+        _linger_after_streams_finish = false;
+    }
+
+    //update our sending window
+    if(header.ack){
+        _sender.ack_received(header.ackno, header.win);
+    }
+    _sender.fill_window();
+
+    if(seg.length_in_sequence_space() > 0 && _sender.segments_out().empty()){
+        _sender.send_empty_segment();
+    }
+    
+    if(seg.length_in_sequence_space() == 0 && header.seqno == _receiver.ackno().value() - 1){
+        _sender.send_empty_segment();
+    }
+    send_segments();
 }
 
 bool TCPConnection::active() const {
@@ -48,7 +87,28 @@ size_t TCPConnection::write(const string &data) {
 
 //! \param[in] ms_since_last_tick number of milliseconds since the last call to this method
 void TCPConnection::tick(const size_t ms_since_last_tick) {
+    _time_since_last_segment_received += ms_since_last_tick;
+    _sender.tick(ms_since_last_tick);
+    //if we've retransmitted too many times, sth very bad has happened
+    //so we need to reset the connection
+    if(_sender.consecutive_retransmissions() > TCPConfig::MAX_RETX_ATTEMPTS){
+        send_RST();
+        return;
+    }
 
+    //perform clean shutdown if all 4 prerequisite is met
+    if(_receiver.stream_out().input_ended() //1.inbound stream fully assembled and ended
+        && _sender.stream_in().eof()        //2.outbut stream ended
+        && _sender.bytes_in_flight() == 0   //3.outbound stream fully acked by peer
+        && (!_linger_after_streams_finish   //4A.lingering after both stream end
+        || _time_since_last_segment_received > 10 * _cfg.rt_timeout)){ //4B.Passive close
+            _active = false;    //close the connction
+            return;
+    }
+
+    //recall that TCPSender's tick() will fill window if it need to retransmit sth
+    //therefore we need to send out segments if there's any
+    send_segments();
 }
 
 void TCPConnection::end_input_stream() {
@@ -72,6 +132,28 @@ void TCPConnection::send_segments(){
         _segments_out.push(move(segment));
     }
 }
+
+void TCPConnection::send_RST() {
+    _sender.fill_window();
+    if (_sender.segments_out().empty()) {
+        _sender.send_empty_segment();
+    }
+    TCPSegment segment = _sender.segments_out().front();
+    _sender.segments_out().pop();
+    optional<WrappingInt32> ackno = _receiver.ackno();
+    if (ackno.has_value()) {
+        segment.header().ack = true;
+        segment.header().ackno = ackno.value();
+    }
+    segment.header().win = _receiver.window_size() <= numeric_limits<uint16_t>::max()
+                               ? _receiver.window_size()
+                               : numeric_limits<uint16_t>::max();
+    segment.header().rst = true;
+    _segments_out.emplace(segment);
+
+    unclean_shutdown();
+}
+
 
 void TCPConnection::connect() {
     _sender.fill_window();
