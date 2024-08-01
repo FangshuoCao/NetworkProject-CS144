@@ -13,9 +13,8 @@ void DUMMY_CODE(Targs &&... /* unused */) {}
 using namespace std;
 
 StreamReassembler::StreamReassembler(const size_t capacity)
-    : _buffer(capacity, '\0'), _received(capacity, false), _next(0),
-      _eof(std::numeric_limits<size_t>::max()), _unassembled_bytes(0),
-      _output(capacity), _capacity(capacity) {}
+    : _buf(capacity), _next(0), _eof(std::numeric_limits<size_t>::max())
+    ,_unassembled_bytes(0), _output(capacity), _capacity(capacity) {}
 
 //! \details This function accepts a substring (aka a segment) of bytes,
 //! possibly out-of-order, from the logical stream, and assembles any newly
@@ -32,20 +31,20 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
         _eof = std::min(_eof, index + data.size());
     }
 
-    for (size_t i = start_index; i < end_index; ++i) {
-        if (!_received[i - _next]) {
-            _buffer[i - _next] = data[i - index];
-            _received[i - _next] = true;
-            ++_unassembled_bytes;
+    for (size_t i = start_index, j = start_index - index; i < end_index; i++, j++) {
+        auto &slot = _buf[i % _capacity];
+        if(!slot.second){
+            slot = {data[j], true};
+            _unassembled_bytes++;
         }
     }
 
     std::string str;
-    while (_next < _capacity && _received[_next]) {
-        str += _buffer[_next];
-        _received[_next] = false; // Mark as processed
-        ++_next;
-        --_unassembled_bytes;
+    while (_next < _eof && _buf[_next % _capacity].second) {
+        str.push_back(_buf[_next % _capacity].first);
+        _buf[_next % _capacity] = {0, false};
+        _next++;
+        _unassembled_bytes--;
     }
     _output.write(str);
 

@@ -12,8 +12,7 @@
 class StreamReassembler {
   private:
     // Your code here -- add private members as necessary.
-    std::vector<char> _buffer; // Buffer for storing bytes
-    std::vector<bool> _received; // Track received bytes
+    std::vector<std::pair<char, bool>> _buf;
     size_t _next;   //index of the next byte to be filled in buffer
     size_t _eof;    //index of eof
     size_t _unassembled_bytes;  //number of unassembled bytes
