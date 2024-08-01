@@ -26,7 +26,7 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
     }
 
     size_t start_index = std::max(index, _next);
-    size_t end_index = std::min({index + data.size(), _eof, _next + _capacity - _output.buffer_size()});
+    size_t end_index = std::min(index + data.size(), min(_eof, _next + _capacity - _output.buffer_size()));
 
     if (eof) {
         _eof = std::min(_eof, index + data.size());
