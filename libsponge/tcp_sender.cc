@@ -28,6 +28,9 @@ uint64_t TCPSender::bytes_in_flight() const { return _outstanding_bytes; }
 
 
 void TCPSender::fill_window() {
+    if(_stop_sending){
+        return;
+    }
     //zero window probing - when filling the window, if window size is 0, act like it is 1
     //the last byte we need to send is ackno + window_size,
     //and first byte to send if next_seqno, so bytes_to_send is their difference
@@ -44,7 +47,7 @@ void TCPSender::fill_window() {
 	        --bytes_to_send;    //SYN take up one space in the window
         }
 
-        header.seqno = wrap(_next_seqno, _isn);
+        header.seqno = next_seqno();
         Buffer &buf = segment.payload();
         buf = stream_in().read(min(bytes_to_send, TCPConfig::MAX_PAYLOAD_SIZE));
         bytes_to_send -= buf.size();
@@ -64,13 +67,13 @@ void TCPSender::fill_window() {
         }
 
         //send segment
-        segments_out().push(segment);
+        segments_out().emplace(segment);
         if(!_timer.started()){
             _timer.start();
         }
 
         //push segment into oustanding segments and start timer
-        _outstanding_segments.push(segment);
+        _outstanding_segments.emplace(segment);
         
         //update corresponding fields
         _next_seqno += len;
@@ -120,9 +123,6 @@ void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_si
         }
         _consec_retrans = 0;    //reset count of consecutive retransmission
     }
-
-    //since window is updated, we need to refill it
-    fill_window();
 
 }
 
