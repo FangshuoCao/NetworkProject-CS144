@@ -36,6 +36,18 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
     _time_since_last_segment_received = 0;
     const TCPHeader &header = seg.header();
 
+    if (!_receiver.ackno().has_value() && _sender.next_seqno_absolute() == 0) {
+        // at this time, TCP acts as a server,
+        // and should not receive any segment except it has SYN flag
+        if (!header.syn) {
+            return;
+        }
+        _receiver.segment_received(seg);
+        // try to send SYN segment, use for opening TCP at the same time
+        connect();
+        return;
+    }
+
     if(header.rst){ //if we received a RST
         unclean_shutdown();
         return;
