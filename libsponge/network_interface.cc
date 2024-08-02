@@ -77,7 +77,7 @@ optional<InternetDatagram> NetworkInterface::recv_frame(const EthernetFrame &fra
             return nullopt;
         }
         const uint32_t src_ip = arp_msg.sender_ip_address;
-        //if this is an ARP request for me
+        //if this is an ARP request for us
         if(arp_msg.opcode == ARPMessage::OPCODE_REQUEST && arp_msg.target_ip_address == _ip_address.ipv4_numeric()){
             //generate a ARP reply
             ARPMessage arp_reply;
@@ -121,6 +121,7 @@ void NetworkInterface::tick(const size_t ms_since_last_tick) {
         }
     }
 
+    //remove timeout ARP request
     for (auto it = _arp_waiting.begin(); it != _arp_waiting.end();) {
         if (it->second <= ms_since_last_tick) {
             it = _arp_waiting.erase(it);
@@ -131,6 +132,7 @@ void NetworkInterface::tick(const size_t ms_since_last_tick) {
     }
 }
 
+//make an ethernet frame from IP packet
 EthernetFrame NetworkInterface::encapsulate(const EthernetAddress &dst, uint16_t type, const BufferList &payload){
     EthernetFrame frame;
     frame.header().src = _ethernet_address;
