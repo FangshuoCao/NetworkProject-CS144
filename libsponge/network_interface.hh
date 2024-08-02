@@ -40,7 +40,25 @@ class NetworkInterface {
     //! outbound queue of Ethernet frames that the NetworkInterface wants sent
     std::queue<EthernetFrame> _frames_out{};
 
+    //new fields:
+    //note that since IPv4 address is 32 bit, we can just use uint32 for it
+    //Table for IP address to MAC address mapping, also need a field for each record's TTL
+    std::unordered_map<uint32_t, std::pair<EthernetAddress, size_t>> _cache{};
+
+    //the last time we sent and ARP request for an IP address
+    std::unordered_map<uint32_t, size_t> _arp_waiting{};
+
+    //IP packets waiting to be sent due to not knowing MAC address
+    std::deque<std::pair<uint32_t, InternetDatagram>> _packets_waiting{};
+    
+
   public:
+    //constants for time out, requirement given in the lab document
+    //an cached entry live 30s
+    static constexpr uint32_t ARP_ENTRY_TTL = 30 * 1000;
+    //ARP response time out 5s
+    static constexpr uint32_t ARP_RESPONSE_TTL = 5 * 1000;
+
     //! \brief Construct a network interface with given Ethernet (network-access-layer) and IP (internet-layer) addresses
     NetworkInterface(const EthernetAddress &ethernet_address, const Address &ip_address);
 
@@ -62,6 +80,16 @@ class NetworkInterface {
 
     //! \brief Called periodically when time elapses
     void tick(const size_t ms_since_last_tick);
+
+    //new methods:
+    //send packets in data queue
+    void send_waiting_packets(uint32_t ip_addr);
+
+    void remove_expired_cache();
+
+    //make an Ethernet Frame from an IP Packet
+    EthernetFrame encapsulate(const EthernetAddress &dst, uint16_t type, const BufferList &payload);
+
 };
 
 #endif  // SPONGE_LIBSPONGE_NETWORK_INTERFACE_HH
