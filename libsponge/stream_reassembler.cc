@@ -13,7 +13,7 @@ void DUMMY_CODE(Targs &&... /* unused */) {}
 using namespace std;
 
 StreamReassembler::StreamReassembler(const size_t capacity)
-    : _buf(capacity), _next(0), _eof(std::numeric_limits<size_t>::max())
+    : _buf(capacity), _next(0), _eof(numeric_limits<size_t>::max())
     ,_unassembled_bytes(0), _output(capacity), _capacity(capacity) {}
 
 //! \details This function accepts a substring (aka a segment) of bytes,
@@ -24,11 +24,11 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
         return;
     }
 
-    size_t start_index = std::max(index, _next);
-    size_t end_index = std::min(index + data.size(), min(_eof, _next + _capacity - _output.buffer_size()));
+    size_t start_index = max(index, _next);
+    size_t end_index = min(index + data.size(), min(_eof, _next + _capacity - _output.buffer_size()));
 
     if (eof) {
-        _eof = std::min(_eof, index + data.size());
+        _eof = min(_eof, index + data.size());
     }
 
     for (size_t i = start_index, j = start_index - index; i < end_index; i++, j++) {
@@ -39,7 +39,7 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
         }
     }
 
-    std::string str;
+    string str;
     while (_next < _eof && _buf[_next % _capacity].second) {
         str.push_back(_buf[_next % _capacity].first);
         _buf[_next % _capacity] = {0, false};
