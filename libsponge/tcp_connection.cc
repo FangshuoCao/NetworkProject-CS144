@@ -1,6 +1,4 @@
 #include "tcp_connection.hh"
-#include <limits>
-#include <algorithm>
 #include <iostream>
 
 // Dummy implementation of a TCP connection
