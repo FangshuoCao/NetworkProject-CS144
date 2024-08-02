@@ -1,3 +1,5 @@
+#include <limits>
+#include <algorithm>
 #include "stream_reassembler.hh"
 
 // Dummy implementation of a stream reassembler.
