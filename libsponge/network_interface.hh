@@ -82,11 +82,6 @@ class NetworkInterface {
     void tick(const size_t ms_since_last_tick);
 
     //new methods:
-    //send packets in data queue
-    void send_waiting_packets(uint32_t ip_addr);
-
-    void remove_expired_cache();
-
     //make an Ethernet Frame from an IP Packet
     EthernetFrame encapsulate(const EthernetAddress &dst, uint16_t type, const BufferList &payload);
 

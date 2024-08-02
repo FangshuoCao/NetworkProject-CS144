@@ -130,3 +130,12 @@ void NetworkInterface::tick(const size_t ms_since_last_tick) {
         }
     }
 }
+
+EthernetFrame NetworkInterface::encapsulate(const EthernetAddress &dst, uint16_t type, const BufferList &payload){
+    EthernetFrame frame;
+    frame.header().src = _ethernet_address;
+    frame.header().dst = dst;
+    frame.header().type = type;
+    frame.payload() = payload;
+    return frame;
+}
